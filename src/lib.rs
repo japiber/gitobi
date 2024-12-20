@@ -1,4 +1,6 @@
-mod repo_db;
+mod repo_store;
+mod repo_document;
+mod repo_query;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
