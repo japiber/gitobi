@@ -4,6 +4,7 @@ use serde_json::{Map, Value};
 use std::fmt::{Debug, Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
+use crate::query_term::QueryTerm;
 
 pub enum RepoDocumentErr {
     NotFound(Box<dyn Error>),
@@ -45,9 +46,9 @@ impl Display for RepoDocumentErr {
     }
 }
 
-pub trait RepoDocument<T: std::cmp::PartialEq> {
-    fn find_one(&self, qry: RepoQuery<T>) -> Result<Option<T>, RepoDocumentErr>;
-    fn find_many(&self, qry: RepoQuery<T>) -> Result<Vec<T>, RepoDocumentErr>;
+pub trait RepoDocument<T, Q> {
+    fn find_one(&self, qry: RepoQuery<Q>) -> Result<Option<T>, RepoDocumentErr>;
+    fn find_many(&self, qry: RepoQuery<Q>) -> Result<Vec<T>, RepoDocumentErr>;
     fn read(&self) -> Result<T, RepoDocumentErr>;
     fn write(&self, data: T) -> Result<(), RepoDocumentErr>;
     fn update(&self, key: &str, data: T) -> Result<(), RepoDocumentErr>;
@@ -71,13 +72,13 @@ impl JsonDocument {
     }
 }
 
-impl RepoDocument<Value> for JsonDocument {
+impl RepoDocument<Value, QueryTerm> for JsonDocument {
 
-    fn find_one(&self, qry: RepoQuery<Value>) -> Result<Option<Value>, RepoDocumentErr> {
+    fn find_one(&self, qry: RepoQuery<QueryTerm>) -> Result<Option<Value>, RepoDocumentErr> {
         Ok(None)
     }
 
-    fn find_many(&self, qry: RepoQuery<Value>) -> Result<Vec<Value>, RepoDocumentErr> {
+    fn find_many(&self, qry: RepoQuery<QueryTerm>) -> Result<Vec<Value>, RepoDocumentErr> {
         let mut results = Vec::new();
         Ok(results)
     }
