@@ -1,5 +1,4 @@
-use gitwrap::git;
-use crate::repo_document::{JsonDocument, RepoDocument};
+/*use crate::repo_document::{JsonDocument, RepoDocument};
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use gitwrap::{add, clone, commit, config, pull, push, rev_parse};
@@ -8,6 +7,7 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
+use gitwrap::wrap_command::FnOptionArg;
 
 pub enum RepoStoreError {
     Initialize(Box<dyn Error>),
@@ -78,7 +78,7 @@ impl GitCommit {
             commit_email: String::from(commit_email),
         }
     }
-    
+
     pub fn pair(&self) -> (String, String) {
         (self.commit_user.clone(), self.commit_email.clone())
     }
@@ -107,20 +107,22 @@ impl GitStore {
     }
 
     fn clone(&self) -> Result<(), RepoStoreError> {
-        let mut cmd = clone!(None,
-            clone::repository(self.repo_url.as_str()),
-            clone::directory(self.repo_path.to_str().unwrap())
-        );
+        let mut custom_options : Vec<FnOptionArg> = vec![];
         if let Some(branch) = self.branch.clone() {
-            cmd.option(clone::branch(branch.clone().as_str()))
+            custom_options.push(clone::branch(branch.clone().as_str()))
         }
         if let Some(auth_header) = self.build_auth_header() {
-            cmd.option(clone::config("http.extraHeader", &auth_header))
+            custom_options.push(clone::config("http.extraHeader", &auth_header))
         }
         if self.auth.insecure {
-            cmd.option(clone::config("http.sslVerify", "false"))
+            custom_options.push(clone::config("http.sslVerify", "false"))
         }
-        match cmd.execute() {
+        let cmd = clone::clone()
+            .add_option(clone::repository(self.repo_url.as_str()))
+            .add_option(clone::directory(self.repo_path.to_str().unwrap()))
+            .add_options(custom_options);
+
+        match cmd.run() {
             Ok(_) => Ok(()),
             Err(e) => Err(RepoStoreError::Clone(Box::new(e))),
         }
@@ -146,25 +148,25 @@ impl GitStore {
     }
 
     fn set_repo_config(&self) -> Result<(), RepoStoreError> {
-        let mut cmd = config::config(Some(self.repo_path.to_str().unwrap()));
         let (user, email) = self.commit.pair();
-        cmd.option(config::entry("user.email", email.as_str()));
-        cmd.option(config::entry("user.name", user.as_str()));
-        match cmd.execute() {
+        let cmd = config::config()
+            .add_option(config::entry("user.email", email.as_str()))
+            .add_option(config::entry("user.name", user.as_str()));
+        match cmd.current_dir(self.repo_path.to_str().unwrap()).run() {
             Ok(_) => Ok(()),
             Err(e) => Err(RepoStoreError::Initialize(Box::new(e))),
         }
     }
-    
+
     fn is_valid_repo(&self) -> bool {
-        let mut cmd = rev_parse::rev_parse(Some(self.repo_path.to_str().unwrap()));
-        cmd.option(rev_parse::is_inside_work_tree());
-        match cmd.execute() {
+        let mut cmd = rev_parse::rev_parse()
+            .add_option(rev_parse::is_inside_work_tree());
+        match cmd.current_dir(self.repo_path.to_str().unwrap()).run() {
             Ok(o) => o.contains("true"),
             Err(_) => false,
         }
     }
-    
+
     fn create_dir_and_clone(&self) -> Result<(), RepoStoreError> {
         match fs::create_dir_all(&self.repo_path) {
             Ok(_) => {
@@ -174,7 +176,7 @@ impl GitStore {
                 self.set_repo_config()
             },
             Err(e) => Err(RepoStoreError::Initialize(Box::new(e))),
-        }       
+        }
     }
 }
 
@@ -204,29 +206,29 @@ impl RepoStore<Value> for GitStore {
     }
 
     fn pull(&self, rebase: bool) -> Result<(), RepoStoreError> {
-        let mut cmd = pull::pull(Some(self.repo_path.to_str().unwrap()));
+        let mut cmd = pull::pull();
         if rebase {
-            cmd.option(pull::rebase(""));
+            cmd = cmd.add_option(pull::rebase(""));
         }
-        match cmd.execute() {
+        match cmd.current_dir(self.repo_path.to_str().unwrap()).run() {
             Ok(_) => Ok(()),
             Err(e) => Err(RepoStoreError::Pull(Box::new(e))),
         }
     }
 
     fn push(&self) -> Result<(), RepoStoreError> {
-        let cmd = push::push(Some(self.repo_path.to_str().unwrap()));
-        match cmd.execute() {
+        let cmd = push::push();
+        match cmd.current_dir(self.repo_path.to_str().unwrap()).run() {
             Ok(_) => Ok(()),
             Err(e) => Err(RepoStoreError::Push(Box::new(e))),
         }
     }
 
     fn commit(&self, msg: &str) -> Result<(), RepoStoreError> {
-        let mut cmd_commit = commit::commit(Some(self.repo_path.to_str().unwrap()));
-        cmd_commit.option(commit::all());
-        cmd_commit.option(commit::message(msg));
-        match cmd_commit.execute() {
+        let cmd_commit = commit::commit()
+            .add_option(commit::all())
+            .add_option(commit::message(msg));
+        match cmd_commit.current_dir(self.repo_path.to_str().unwrap()).run() {
             Ok(_) => Ok(()),
             Err(e) => Err(RepoStoreError::Commit(Box::new(e))),
         }
@@ -235,4 +237,4 @@ impl RepoStore<Value> for GitStore {
     fn clean(&self) -> Result<(), RepoStoreError> {
         todo!()
     }
-}
+}*/
